@@ -1,3 +1,3 @@
 # Mfe204
 Code support for our MFE204
-这个项目实现了[知识蒸馏]，代码的部分实现是在 ChatGPT 的帮助下完成的。ChatGPT 提供了对代码逻辑的建议、优化和一些特定功能的实现。
+The "Code support for our MFE204" project implemented [knowledge distillation], and part of the code implementation was completed with the help of ChatGPT. ChatGPT provided suggestions for code logic, optimizations, and the implementation of specific features.
