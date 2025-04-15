@@ -27,22 +27,22 @@ class StudentCNN(nn.Module):
         out = self.classifier(out)
         return out
 
-# 1. 设置设备
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 2. 加载保存的模型
+
 teacher = resnet18(pretrained=False)  # Ensure resnet18 is imported
-teacher.fc = nn.Linear(512, 10)  # CIFAR-10 -> 10分类
+teacher.fc = nn.Linear(512, 10) 
 teacher.to(device)
 teacher.load_state_dict(torch.load("/tmp/teacher_kd.pth"))
-teacher.eval()  # 设置为评估模式
+teacher.eval() 
 
 # 3. Initialize student model
 student = StudentCNN().to(device)  # Ensure StudentCNN class is defined above
 student.load_state_dict(torch.load("/tmp/student_kd.pth"))
-student.eval()  # 设置为评估模式
+student.eval() 
 
-# 4. 加载测试数据集
+
 test_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
@@ -54,7 +54,7 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False,
 # 5. Define the class names for CIFAR-10
 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
-# 6. 随机图像预测可视化
+
 def visualize_predictions(t_model, s_model, loader, num_images=5):
     t_model.eval()
     s_model.eval()
@@ -89,6 +89,6 @@ def visualize_predictions(t_model, s_model, loader, num_images=5):
         plt.axis("off")
     plt.show()
 
-# 7. 可视化预测
+
 print("\nVisualizing random predictions...")
 visualize_predictions(teacher, student, testloader, num_images=5)
