@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 from torchvision.models import resnet18
 from tqdm import tqdm  # 导入tqdm
 
-# 1. 设置随机种子
+
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -25,25 +25,25 @@ set_seed(42)
 
 
 
-# 2. 检测设备
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 
 
 
-# 3. 超参数
-batch_size = 128
-epochs_teacher = 20   # 增加教师训练轮数
-epochs_student = 20   # 增加学生训练轮数
-alpha = 0.7           # 调整软标签权重
-T = 2.0               # 降低初始温度
-T_min = 1.0           # 最低温度
+
+batch_size = 128  
+epochs_teacher = 20   
+epochs_student = 20   
+alpha = 0.7           
+T = 2.0              
+T_min = 1.0           
 
 
-# 4.增强数据增广
+
 train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
+    transforms.RandomCrop(32, padding=4),  
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(15),
     transforms.ColorJitter(brightness=0.2, contrast=0.2),
@@ -79,20 +79,20 @@ classes = [
 print(f"CUDA Available: {torch.cuda.is_available()}")
 print(f"Device: {device}")
 
-# 检查数据集是否成功加载
+
 print(f"Training dataset size: {len(trainloader.dataset)}")
 print(f"Test dataset size: {len(testloader.dataset)}")
 
-# 5. 构建教师模型(Teacher)
+
 teacher = resnet18(pretrained=True)
 teacher.fc = nn.Linear(512, 10)  # CIFAR-10 -> 10分类
 teacher.to(device)
 
 optimizer_teacher = optim.Adam(teacher.parameters(), lr=0.001)
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss()  
 
 
-# 6. 构建学生模型(Student) - 简易CNN
+
 class StudentCNN(nn.Module):
     def __init__(self):
         super(StudentCNN, self).__init__()
@@ -107,7 +107,7 @@ class StudentCNN(nn.Module):
         self.classifier = nn.Linear(32 * 8 * 8, 10)
 
     def forward(self, x):
-        feat = self.features(x)
+        feat = self.features(x)  
         out = feat.view(feat.size(0), -1)
         out = self.classifier(out)
         return out
@@ -117,7 +117,7 @@ student = StudentCNN().to(device)
 optimizer_student = optim.Adam(student.parameters(), lr=0.001)
 
 
-# 7. 训练教师模型
+
 def train_teacher_model(model, loader, epochs):
     acc_list = []
     for epoch in range(epochs):
@@ -141,7 +141,7 @@ def train_teacher_model(model, loader, epochs):
             correct += preds.eq(labels).sum().item()
             total += labels.size(0)
 
-            # 每10个批次输出一次日志，检查训练进度
+            
             if i % 10 == 0:
                 print(f"Epoch {epoch+1}/{epochs}, Batch {i}/{len(loader)} | Loss={loss.item():.4f}")
 
@@ -152,7 +152,7 @@ def train_teacher_model(model, loader, epochs):
     return acc_list
 
 
-# 8. Logits蒸馏损失
+
 def distillation_loss(student_logits, teacher_logits, T):
     """
     KL散度蒸馏损失
@@ -164,7 +164,7 @@ def distillation_loss(student_logits, teacher_logits, T):
     ) * (T * T)
 
 
-# 9. 训练学生模型(仅logits KD)
+
 def train_student_kd(teacher_model, student_model, loader, epochs, T):
     teacher_model.eval()
     train_acc_list = []
@@ -174,44 +174,43 @@ def train_student_kd(teacher_model, student_model, loader, epochs, T):
         correct, total = 0, 0
         running_loss = 0.0
 
-        # 使用tqdm显示进度条
+  
         for i, (inputs, labels) in enumerate(tqdm(loader, desc=f"Student Epoch {epoch+1}/{epochs}", ncols=100)):
             inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer_student.zero_grad()
 
-            # 学生前向
+           
             student_logits = student_model(inputs)
 
-            # 教师前向(不计算梯度)
+         
             with torch.no_grad():
                 teacher_logits = teacher_model(inputs)
 
-            # (1) 交叉熵 (硬标签)
+           
             loss_ce = criterion(student_logits, labels)
-            # (2) KD (软标签)
+      
             loss_kd = distillation_loss(student_logits, teacher_logits, T)
 
-            # 总损失：可微调alpha
             loss = alpha * loss_kd + (1 - alpha) * loss_ce
 
             loss.backward()
             optimizer_student.step()
 
-            running_loss += loss.item()
+            running_loss += loss.item()  
             _, preds = student_logits.max(1)
             correct += preds.eq(labels).sum().item()
             total += labels.size(0)
 
-            # 每10次输出一次日志，检查进度
+        
             if i % 10 == 0:
-                print(f"[Student-KD] Batch {i}/{len(loader)} | Loss={loss.item():.4f}")
+                print(f"[Student-KD] Batch {i}/{len(loader)} | Loss={loss.item():.4f}")  
 
-        # 动态调整蒸馏温度
-        T = max(T_min, T - (T - T_min) * 0.1)
+      
+        T = max(T_min, T - (T - T_min) * 0.1)  
 
         acc = 100.0 * correct / total
-        train_acc_list.append(acc)
+        train_acc_list.append(acc)  
         print(f"[Student-KD] Epoch {epoch+1}/{epochs} | Loss={running_loss/len(loader):.3f} | TrainAcc={acc:.2f}%")
 
     return train_acc_list
@@ -236,7 +235,7 @@ def evaluate(model, loader):
     print(f"Test Loss={running_loss/len(loader):.3f} | Test Accuracy={acc:.2f}%")
     return acc
 
-# 10. 模型训练与评估
+
 print("==== Training Teacher Model ====")
 teacher_train_acc = train_teacher_model(teacher, trainloader, epochs_teacher)
 teacher_test_acc = evaluate(teacher, testloader)
@@ -245,11 +244,11 @@ print(f"Teacher Test Accuracy: {teacher_test_acc:.2f}%")
 print("\n==== Training Student Model with Logits Distillation ====")
 student_train_acc = train_student_kd(teacher, student, trainloader, epochs_student, T)
 
-student_test_acc = evaluate(student, testloader)
+student_test_acc = evaluate(student, testloader)  
 print(f"\n[Student] Test Accuracy: {student_test_acc:.2f}%")
 
 
-# 11. 模型参数对比 + 保存(写到 /tmp/)
+
 def count_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
@@ -260,7 +259,7 @@ print(f"\nTeacher Params: {teacher_params}")
 print(f"Student Params: {student_params}")
 
 teacher_save_path = "/tmp/teacher_kd.pth"
-student_save_path = "/tmp/student_kd.pth"
+student_save_path = "/tmp/student_kd.pth"  
 
 torch.save(teacher.state_dict(), teacher_save_path)
 torch.save(student.state_dict(), student_save_path)
@@ -271,8 +270,8 @@ print(f"Teacher Model File Size: {teacher_size:.2f} MB")
 print(f"Student Model File Size: {student_size:.2f} MB")
 
 
-# 12. 训练曲线可视化
-epochs_range_teacher = range(1, epochs_teacher+1)
+
+epochs_range_teacher = range(1, epochs_teacher+1)  
 epochs_range_student = range(1, epochs_student+1)
 
 plt.figure(figsize=(8, 4))
