@@ -33,9 +33,9 @@ class StudentCNN(nn.Module):
         out = self.classifier(out)
         return out
 
-# 1. 设置设备
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# 2. 加载保存的模型
+
 teacher = resnet18(pretrained=False)  # Use ResNet18, but for CIFAR-10 we need to adjust it
 teacher.fc = nn.Linear(512, 10)  # CIFAR-10 -> 10 classes for different objects
 teacher.to(device)
@@ -43,16 +43,16 @@ teacher.load_state_dict(torch.load("/tmp/teacher_kd.pth"))
 teacher.eval()  # Set the model to evaluation mode
 
 # 3. Initialize student model
-student = StudentCNN().to(device)  # Use the same CNN model as before for simplicity
+student = StudentCNN().to(device)  # Use the same CNN model as before for simplicity  
 student.load_state_dict(torch.load(r"C:\Users\Administrator\Desktop\model\best_student.pth"))
-student.eval()  # Set the model to evaluation mode
+student.eval()  # Set the model to evaluation mode  
 
 # 4. Preprocessing for the custom image
 def preprocess_image(image_path):
     transform = transforms.Compose([
         transforms.Resize(32),  # Resize images to 32x32 to match ResNet18 input size
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))  # CIFAR-10 normalization
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))  # CIFAR-10 normalization  
     ])
 
     # Open the image file
@@ -61,7 +61,7 @@ def preprocess_image(image_path):
     return img
 
 # 5. Make a prediction on a custom image
-def predict_custom_image(image_path):
+def predict_custom_image(image_path):  
     # Preprocess the custom image
     img = preprocess_image(image_path).to(device)
 
