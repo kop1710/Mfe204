@@ -29,11 +29,11 @@ print("Using device:", device)
 
 
 batch_size = 128
-epochs_teacher = 20   # 增加教师训练轮数
-epochs_student = 20   # 增加学生训练轮数
-alpha = 0.7           # 调整软标签权重
-T = 2.0               # 降低初始温度
-T_min = 1.0           # 最低温度
+epochs_teacher = 20   
+epochs_student = 20   
+alpha = 0.7           
+T = 2.0               
+T_min = 1.0          
 
 
 train_transform = transforms.Compose([
